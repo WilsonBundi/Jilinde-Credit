@@ -1,16 +1,33 @@
 import api from './authService';
+import { demoService, isDemoMode } from './demoService';
 
 // Onboarding API
 export const onboardingService = {
   submitApplication: (applicationData) => {
+    if (isDemoMode()) {
+      return demoService.registerCustomer(applicationData);
+    }
     return api.post('/onboarding/register', applicationData);
   },
   
+  checkPhone: (phone) => {
+    if (isDemoMode()) {
+      return demoService.checkPhone(phone);
+    }
+    return api.post('/onboarding/check-phone', { phone });
+  },
+  
   getApplicationStatus: (applicationId) => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: { status: 'pending', message: 'Application under review' } });
+    }
     return api.get(`/onboarding/status/${applicationId}`);
   },
   
   uploadDocument: (documentType, file) => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: { message: 'Document uploaded successfully' } });
+    }
     const formData = new FormData();
     formData.append('document', file);
     formData.append('type', documentType);
@@ -22,6 +39,9 @@ export const onboardingService = {
   },
   
   verifyBiometric: (biometricData) => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: { verified: true, message: 'Biometric verification successful' } });
+    }
     return api.post('/onboarding/verify-biometric', biometricData);
   },
 };
@@ -130,14 +150,44 @@ export const paymentService = {
 // Dashboard API
 export const dashboardService = {
   getStats: () => {
+    if (isDemoMode()) {
+      return demoService.getDashboardStats();
+    }
     return api.get('/dashboard/stats');
   },
   
+  getAllApplications: () => {
+    if (isDemoMode()) {
+      return demoService.getAllApplications();
+    }
+    return api.get('/admin/applications');
+  },
+  
+  approveApplication: (applicationId) => {
+    if (isDemoMode()) {
+      return demoService.approveApplication(applicationId);
+    }
+    return api.post(`/admin/applications/${applicationId}/approve`);
+  },
+  
+  rejectApplication: (applicationId, reason) => {
+    if (isDemoMode()) {
+      return demoService.rejectApplication(applicationId, reason);
+    }
+    return api.post(`/admin/applications/${applicationId}/reject`, { reason });
+  },
+  
   getRecentActivity: () => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: [] });
+    }
     return api.get('/dashboard/recent-activity');
   },
   
   getPortfolioSummary: () => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: {} });
+    }
     return api.get('/dashboard/portfolio-summary');
   },
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDemoMode } from '../services/demoService';
 
 const LandingPage = ({ navigate }) => {
   const [currentTeamMember, setCurrentTeamMember] = useState(0);
@@ -188,6 +189,26 @@ const LandingPage = ({ navigate }) => {
       position: 'relative',
       overflow: 'hidden'
     }}>
+      {/* Demo Mode Banner */}
+      {isDemoMode() && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(90deg, #ff6b6b, #feca57)',
+          color: 'white',
+          padding: '10px',
+          textAlign: 'center',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          zIndex: 9999,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+        }}>
+          🚀 DEMO MODE - This is a demonstration version. Backend functionality is simulated.
+        </div>
+      )}
+      
       {/* Animated Background Elements */}
       <div style={{
         position: 'absolute',
@@ -195,6 +216,7 @@ const LandingPage = ({ navigate }) => {
         left: 0,
         right: 0,
         bottom: 0,
+        marginTop: isDemoMode() ? '50px' : '0',
         background: `
           radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
           radial-gradient(circle at 80% 20%, rgba(255, 107, 107, 0.3) 0%, transparent 50%),

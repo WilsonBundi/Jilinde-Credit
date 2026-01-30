@@ -3,6 +3,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import CustomerDashboard from './pages/CustomerDashboard';
 import LandingPage from './components/LandingPage';
+import { onboardingService } from './services/apiService';
 // MOBILE KYC IMPORTS - COMMENTED OUT TEMPORARILY
 // import MobileKycQrCode from './components/MobileKycQrCode';
 // import MobileKycVerification from './pages/MobileKycVerification';
@@ -159,38 +160,15 @@ const Registration = ({ onBack, onSuccess }) => {
   const checkPhoneAvailability = async (phoneNumber) => {
     setPhoneCheckStatus('checking');
     try {
-      const response = await fetch('/api/onboarding/check-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone: phoneNumber })
-      });
-
-      if (response.ok) {
-        setPhoneCheckStatus('available');
-      } else {
-        let errorData;
-        const text = await response.text();
-        try {
-          errorData = text ? JSON.parse(text) : { error: 'UNKNOWN_ERROR' };
-        } catch (e) {
-          errorData = { error: 'PARSE_ERROR', message: 'Invalid response format' };
-        }
-        
-        if (errorData.error === 'PHONE_IN_USE') {
-          setPhoneCheckStatus('unavailable');
-          setValidationErrors(prev => ({
-            ...prev,
-            phone: 'This phone number is already registered. Please use a different number.'
-          }));
-        } else {
-          setPhoneCheckStatus('error');
-        }
-      }
+      await onboardingService.checkPhone(phoneNumber);
+      setPhoneCheckStatus('available');
     } catch (error) {
       console.error('Phone check error:', error);
-      setPhoneCheckStatus('error');
+      setPhoneCheckStatus('unavailable');
+      setValidationErrors(prev => ({
+        ...prev,
+        phone: 'This phone number is already registered. Please use a different number.'
+      }));
     }
   };
 
@@ -290,93 +268,42 @@ const Registration = ({ onBack, onSuccess }) => {
     setIsSubmitting(true);
     try {
       // First, verify phone number is not in use
-      const phoneCheckResponse = await fetch('/api/onboarding/check-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone: formData.phone })
-      });
-
-      if (!phoneCheckResponse.ok) {
-        let errorData;
-        const text = await phoneCheckResponse.text();
-        try {
-          errorData = text ? JSON.parse(text) : { error: 'UNKNOWN_ERROR' };
-        } catch (e) {
-          errorData = { error: 'PARSE_ERROR', message: 'Invalid response format' };
-        }
-        
-        if (errorData.error === 'PHONE_IN_USE') {
-          alert('❌ This phone number is already registered with another account. Please use a different number.');
-          setIsSubmitting(false);
-          return;
-        }
+      try {
+        await onboardingService.checkPhone(formData.phone);
+      } catch (error) {
+        alert('❌ This phone number is already registered with another account. Please use a different number.');
+        setIsSubmitting(false);
+        return;
       }
 
-      // Submit application with proper field mapping and document verification
-      const response = await fetch('/api/onboarding/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-          email: formData.email,
-          nationalId: formData.idNumber, // Map idNumber to nationalId
-          dateOfBirth: formData.dateOfBirth,
-          gender: formData.gender,
-          address: `${formData.village}, ${formData.ward}, ${formData.subCounty}, ${formData.county}`, // Combine address fields
-          occupation: formData.employer || formData.employmentStatus,
-          monthlyIncome: parseFloat(formData.monthlyIncome) || 0,
-          maritalStatus: 'single', // Default value
-          digitalLiteracyLevel: 3, // Default value
-          preferredLanguage: 'english', // Default value
-          voiceAssistanceEnabled: false, // Default value
-          
-          // Basic ID type (REQUIRED FIELD)
-          idType: formData.idType || 'national_id' // Default to national_id if not set
-          
-          // CRITICAL: Document verification data (TEMPORARILY COMMENTED OUT)
-          // idType: formData.idType,
-          // documentFileName: formData.documentFileName,
-          // documentHash: formData.documentHash,
-          // documentFirstName: formData.documentFirstName,
-          // documentLastName: formData.documentLastName,
-          // documentIdNumber: formData.documentIdNumber,
-          // documentDateOfBirth: formData.documentDateOfBirth,
-          // documentGender: formData.documentGender
-        })
-      });
+      // Submit application with proper field mapping
+      const applicationData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        email: formData.email,
+        nationalId: formData.idNumber, // Map idNumber to nationalId
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: `${formData.village}, ${formData.ward}, ${formData.subCounty}, ${formData.county}`, // Combine address fields
+        occupation: formData.employer || formData.employmentStatus,
+        monthlyIncome: parseFloat(formData.monthlyIncome) || 0,
+        maritalStatus: 'single', // Default value
+        digitalLiteracyLevel: 3, // Default value
+        preferredLanguage: 'english', // Default value
+        voiceAssistanceEnabled: false, // Default value
+        idType: formData.idType || 'national_id' // Default to national_id if not set
+      };
 
-      if (response.ok) {
-        let result;
-        const text = await response.text();
-        try {
-          result = text ? JSON.parse(text) : { applicationId: 'APP-' + Date.now(), message: 'Application submitted successfully!' };
-        } catch (e) {
-          result = { applicationId: 'APP-' + Date.now(), message: 'Application submitted successfully!' };
-        }
-        
-        onSuccess({
-          applicationId: result.customerCode || result.applicationId,
-          message: result.message || 'Application submitted successfully! You will receive an email confirmation and SMS verification code shortly.'
-        });
-      } else {
-        let errorData;
-        const text = await response.text();
-        try {
-          errorData = text ? JSON.parse(text) : { message: 'Application submission failed' };
-        } catch (e) {
-          errorData = { message: 'Application submission failed' };
-        }
-        throw new Error(errorData.message || 'Application submission failed');
-      }
+      const response = await onboardingService.submitApplication(applicationData);
+      
+      onSuccess({
+        applicationId: response.data.customerCode || response.data.applicationId,
+        message: response.data.message || 'Application submitted successfully! You will receive an email confirmation and SMS verification code shortly.'
+      });
     } catch (error) {
       console.error('Application submission error:', error);
-      alert('❌ ' + error.message);
+      alert('❌ ' + (error.message || 'Application submission failed'));
     } finally {
       setIsSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { dashboardService } from '../services/apiService';
 
 const AdminDashboard = ({ navigate }) => {
   const [applications, setApplications] = useState([]);
@@ -10,7 +11,6 @@ const AdminDashboard = ({ navigate }) => {
     rejectedApplications: 0
   });
 
-  // Check admin authentication
   useEffect(() => {
     const checkAuth = () => {
       const isAuthenticated = localStorage.getItem('adminAuthenticated');
@@ -35,33 +35,24 @@ const AdminDashboard = ({ navigate }) => {
       return true;
     };
 
-    const loadStats = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetch('/api/admin/dashboard/stats', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          let data;
-          const text = await response.text();
-          try {
-            data = text ? JSON.parse(text) : stats;
-          } catch (e) {
-            data = stats;
-          }
-          setStats(data);
-        }
+        // Load stats
+        const statsResponse = await dashboardService.getStats();
+        setStats(statsResponse.data);
+        
+        // Load applications
+        const appsResponse = await dashboardService.getAllApplications();
+        setApplications(appsResponse.data);
       } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     if (checkAuth()) {
-      loadApplications();
-      loadStats();
+      loadData();
     }
   }, [navigate]);
 
@@ -71,148 +62,60 @@ const AdminDashboard = ({ navigate }) => {
     navigate('/');
   };
 
-  const loadApplications = async () => {
-    try {
-      const response = await fetch('/api/admin/applications/all', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        let data;
-        const text = await response.text();
-        try {
-          data = text ? JSON.parse(text) : [];
-        } catch (e) {
-          data = [];
-        }
-        setApplications(data);
-      } else {
-        console.error('Failed to load applications');
-        setApplications([]);
-      }
-    } catch (error) {
-      console.error('Error loading applications:', error);
-      setApplications([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const response = await fetch('/api/admin/dashboard/stats', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        let data;
-        const text = await response.text();
-        try {
-          data = text ? JSON.parse(text) : stats;
-        } catch (e) {
-          data = stats;
-        }
-        setStats(data);
-      }
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
-
   const handleApprove = async (applicationId) => {
     try {
-      const response = await fetch(`/api/admin/applications/${applicationId}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'approve' })
-      });
-
-      if (response.ok) {
-        let result;
-        const text = await response.text();
-        try {
-          result = text ? JSON.parse(text) : { pin: '1234' };
-        } catch (e) {
-          result = { pin: '1234' };
-        }
-        
-        // Update local state
-        setApplications(prev => 
-          prev.map(app => 
-            app.id === applicationId 
-              ? { ...app, status: 'approved', pin: result.pin }
-              : app
-          )
-        );
-        
-        // Reload stats
-        loadStats();
-        
-        alert(`✅ Application approved! PIN ${result.pin} generated and SMS sent to customer.`);
-      } else {
-        let errorData;
-        const text = await response.text();
-        try {
-          errorData = text ? JSON.parse(text) : { message: 'Failed to approve application' };
-        } catch (e) {
-          errorData = { message: 'Failed to approve application' };
-        }
-        throw new Error(errorData.message || 'Failed to approve application');
-      }
+      const response = await dashboardService.approveApplication(applicationId);
+      
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: 'approved', pin: response.data.pin }
+            : app
+        )
+      );
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApplications: prev.pendingApplications - 1,
+        approvedApplications: prev.approvedApplications + 1
+      }));
+      
+      alert(`✅ Application approved! PIN: ${response.data.pin}`);
     } catch (error) {
-      console.error('Approval error:', error);
-      alert('❌ ' + error.message);
+      console.error('Error approving application:', error);
+      alert('❌ Error approving application');
     }
   };
 
   const handleReject = async (applicationId) => {
-    const reason = prompt('Please provide a reason for rejection:');
+    const reason = prompt('Enter rejection reason:');
     if (!reason) return;
 
     try {
-      const response = await fetch(`/api/admin/applications/${applicationId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'reject', reason })
-      });
-
-      if (response.ok) {
-        // Update local state
-        setApplications(prev => 
-          prev.map(app => 
-            app.id === applicationId 
-              ? { ...app, status: 'rejected', rejectionReason: reason }
-              : app
-          )
-        );
-        
-        // Reload stats
-        loadStats();
-        
-        alert('✅ Application rejected. Email notification sent to customer.');
-      } else {
-        let errorData;
-        const text = await response.text();
-        try {
-          errorData = text ? JSON.parse(text) : { message: 'Failed to reject application' };
-        } catch (e) {
-          errorData = { message: 'Failed to reject application' };
-        }
-        throw new Error(errorData.message || 'Failed to reject application');
-      }
+      await dashboardService.rejectApplication(applicationId, reason);
+      
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status: 'rejected', rejectionReason: reason }
+            : app
+        )
+      );
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApplications: prev.pendingApplications - 1,
+        rejectedApplications: prev.rejectedApplications + 1
+      }));
+      
+      alert('✅ Application rejected successfully');
     } catch (error) {
-      console.error('Rejection error:', error);
-      alert('❌ ' + error.message);
+      console.error('Error rejecting application:', error);
+      alert('❌ Error rejecting application');
     }
   };
 
@@ -408,8 +311,20 @@ const AdminDashboard = ({ navigate }) => {
               <button
                 onClick={() => {
                   setLoading(true);
-                  loadApplications();
-                  loadStats();
+                  const loadData = async () => {
+                    try {
+                      const statsResponse = await dashboardService.getStats();
+                      setStats(statsResponse.data);
+                      
+                      const appsResponse = await dashboardService.getAllApplications();
+                      setApplications(appsResponse.data);
+                    } catch (error) {
+                      console.error('Error loading data:', error);
+                    } finally {
+                      setLoading(false);
+                    }
+                  };
+                  loadData();
                 }}
                 style={{
                   padding: '10px 20px',

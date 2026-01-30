@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { demoService, isDemoMode } from './demoService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
@@ -40,14 +41,24 @@ api.interceptors.response.use(
 
 export const authService = {
   login: (credentials) => {
+    if (isDemoMode()) {
+      return demoService.login(credentials);
+    }
     return api.post('/auth/login', credentials);
   },
 
   logout: () => {
+    if (isDemoMode()) {
+      return Promise.resolve({ data: { message: 'Logged out successfully' } });
+    }
     return api.post('/auth/logout');
   },
 
   getCurrentUser: () => {
+    if (isDemoMode()) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return Promise.resolve({ data: user });
+    }
     return api.get('/auth/me');
   },
 
