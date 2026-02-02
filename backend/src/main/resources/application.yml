@@ -50,7 +50,9 @@ logging:
 ---
 # Production profile for Railway/Heroku
 spring:
-  profiles: production
+  config:
+    activate:
+      on-profile: production
   
   datasource:
     url: ${DATABASE_URL}
