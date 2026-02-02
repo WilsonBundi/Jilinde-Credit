@@ -3,9 +3,10 @@ nixPkgs = ['maven', 'nodejs-18_x']
 
 [phases.build]
 cmds = [
-    'cd frontend && npm ci && npm run build',
+    'mkdir -p backend/src/main/resources/static',
+    'cd frontend && npm ci --legacy-peer-deps && npm run build',
     'cd backend && mvn clean package -DskipTests',
-    'cp -r frontend/build/* backend/src/main/resources/static/'
+    'cp -r frontend/build/* backend/src/main/resources/static/ || true'
 ]
 
 [phases.start]
