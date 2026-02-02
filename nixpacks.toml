@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ['maven', 'nodejs-18_x']
+
+[phases.build]
+cmds = [
+    'cd frontend && npm ci && npm run build',
+    'cd backend && mvn clean package -DskipTests',
+    'cp -r frontend/build/* backend/src/main/resources/static/'
+]
+
+[phases.start]
+cmd = 'cd backend && java -Dserver.port=$PORT -jar target/*.jar'

@@ -1,28 +1,31 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
     name: jilinde-credit-api
   
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  
   datasource:
-    url: jdbc:h2:file:./data/jilinde_credit_db
-    username: sa
-    password: 1234
-    driver-class-name: org.h2.Driver
+    url: ${DATABASE_URL:jdbc:h2:file:./data/jilinde_credit_db}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:1234}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
   
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:true}
       path: /h2-console
   
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
         format_sql: true
   
   security:
@@ -32,14 +35,45 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: jilindeCreditSecretKey2024ForMicrofinanceSystemVeryLongSecretKeyForSecurity
-  expiration: 86400000 # 24 hours in milliseconds
+  secret: ${JWT_SECRET:jilindeCreditSecretKey2024ForMicrofinanceSystemVeryLongSecretKeyForSecurity}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
 
 # Logging
 logging:
   level:
-    com.jilindecredit: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
+    com.jilindecredit: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: ${LOG_LEVEL:DEBUG}
+    org.springframework.web: ${LOG_LEVEL:DEBUG}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+---
+# Production profile for Railway/Heroku
+spring:
+  profiles: production
+  
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  
+  h2:
+    console:
+      enabled: false
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+# Production logging
+logging:
+  level:
+    com.jilindecredit: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
