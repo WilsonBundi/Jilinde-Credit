@@ -160,15 +160,51 @@ const Registration = ({ onBack, onSuccess }) => {
   const checkPhoneAvailability = async (phoneNumber) => {
     setPhoneCheckStatus('checking');
     try {
-      await onboardingService.checkPhone(phoneNumber);
+      console.log('Checking phone availability for:', phoneNumber);
+      console.log('API URL:', process.env.REACT_APP_API_URL);
+      
+      const response = await onboardingService.checkPhone(phoneNumber);
+      console.log('Phone check response:', response);
+      
+      // If we get here, the phone is available (200 OK response)
       setPhoneCheckStatus('available');
+      // Clear any previous phone validation errors
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.phone;
+        return newErrors;
+      });
     } catch (error) {
-      console.error('Phone check error:', error);
-      setPhoneCheckStatus('unavailable');
-      setValidationErrors(prev => ({
-        ...prev,
-        phone: 'This phone number is already registered. Please use a different number.'
-      }));
+      console.error('Phone check error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // Check if it's a network error vs actual phone unavailable
+      if (error.response?.status === 400 && error.response?.data?.error === 'PHONE_IN_USE') {
+        // Phone is actually in use
+        setPhoneCheckStatus('unavailable');
+        setValidationErrors(prev => ({
+          ...prev,
+          phone: 'This phone number is already registered. Please use a different number.'
+        }));
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        // Network/connection error
+        setPhoneCheckStatus('error');
+        setValidationErrors(prev => ({
+          ...prev,
+          phone: 'Unable to verify phone number. Please check your connection and try again.'
+        }));
+      } else {
+        // Other server error
+        setPhoneCheckStatus('error');
+        setValidationErrors(prev => ({
+          ...prev,
+          phone: 'Error checking phone availability. Please try again.'
+        }));
+      }
     }
   };
 
@@ -199,8 +235,16 @@ const Registration = ({ onBack, onSuccess }) => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        return formData.firstName && formData.lastName && formData.phone && 
+        // Basic field validation
+        const basicFieldsValid = formData.firstName && formData.lastName && formData.phone && 
                formData.email && formData.dateOfBirth && formData.gender;
+        
+        // Phone validation - allow proceeding if phone check failed due to network error
+        const phoneValid = phoneCheckStatus === 'available' || 
+                          phoneCheckStatus === 'error' || 
+                          phoneCheckStatus === '';
+        
+        return basicFieldsValid && phoneValid && phoneCheckStatus !== 'unavailable';
       case 2:
         return formData.idNumber && formData.idType; // Simplified - removed document verification requirements
         // && formData.idDocument &&
@@ -229,7 +273,14 @@ const Registration = ({ onBack, onSuccess }) => {
       // }
       setCurrentStep(prev => Math.min(prev + 1, 5)); // Changed from 6 to 5
     } else {
-      alert('Please fill in all required fields before proceeding.');
+      // Provide specific error message for step 1 phone validation
+      if (currentStep === 1 && phoneCheckStatus === 'unavailable') {
+        alert('Please use a different phone number. The current number is already registered.');
+      } else if (currentStep === 1 && phoneCheckStatus === 'checking') {
+        alert('Please wait for phone number verification to complete.');
+      } else {
+        alert('Please fill in all required fields before proceeding.');
+      }
     }
   };
 
@@ -391,6 +442,11 @@ const Registration = ({ onBack, onSuccess }) => {
                 {phoneCheckStatus === 'unavailable' && (
                   <p style={{ fontSize: '0.9rem', color: '#f44336', marginTop: '5px' }}>
                     ❌ This phone number is already registered
+                  </p>
+                )}
+                {phoneCheckStatus === 'error' && (
+                  <p style={{ fontSize: '0.9rem', color: '#ff9800', marginTop: '5px' }}>
+                    ⚠️ Unable to verify phone number - you can still proceed
                   </p>
                 )}
                 {validationErrors.phone && (
