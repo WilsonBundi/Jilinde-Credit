@@ -158,20 +158,6 @@ const Registration = ({ onBack, onSuccess }) => {
   };
 
   const checkPhoneAvailability = async (phoneNumber) => {
-    // TEMPORARY: Disable phone checking due to backend connectivity issues
-    console.log('Phone check temporarily disabled - backend not accessible');
-    setPhoneCheckStatus('available');
-    
-    // Clear any previous phone validation errors
-    setValidationErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors.phone;
-      return newErrors;
-    });
-    
-    return; // Skip actual API call for now
-    
-    /* ORIGINAL CODE - RE-ENABLE WHEN BACKEND IS ACCESSIBLE
     setPhoneCheckStatus('checking');
     try {
       console.log('Checking phone availability for:', phoneNumber);
@@ -193,11 +179,19 @@ const Registration = ({ onBack, onSuccess }) => {
         message: error.message,
         response: error.response,
         status: error.response?.status,
-        data: error.response?.data
+        data: error.response?.data,
+        config: error.config
       });
       
-      // Check if it's a network error vs actual phone unavailable
-      if (error.response?.status === 400 && error.response?.data?.error === 'PHONE_IN_USE') {
+      // Check if it's a 403 Forbidden error
+      if (error.response?.status === 403) {
+        console.log('403 Forbidden - Authentication/Authorization issue');
+        setPhoneCheckStatus('error');
+        setValidationErrors(prev => ({
+          ...prev,
+          phone: 'Phone verification service unavailable. You can still proceed with registration.'
+        }));
+      } else if (error.response?.status === 400 && error.response?.data?.error === 'PHONE_IN_USE') {
         // Phone is actually in use
         setPhoneCheckStatus('unavailable');
         setValidationErrors(prev => ({
@@ -220,7 +214,6 @@ const Registration = ({ onBack, onSuccess }) => {
         }));
       }
     }
-    */
   };
 
   const handleFileUpload = (field, file) => {
@@ -336,19 +329,23 @@ const Registration = ({ onBack, onSuccess }) => {
 
     setIsSubmitting(true);
     try {
-      // TEMPORARY: Skip phone verification during submission due to backend connectivity issues
-      console.log('Skipping phone verification during submission - backend not accessible');
-      
-      /* ORIGINAL CODE - RE-ENABLE WHEN BACKEND IS ACCESSIBLE
-      // First, verify phone number is not in use
+      // Try to verify phone number is not in use, but don't block if service is unavailable
       try {
         await onboardingService.checkPhone(formData.phone);
+        console.log('Phone verification passed during submission');
       } catch (error) {
-        alert('❌ This phone number is already registered with another account. Please use a different number.');
-        setIsSubmitting(false);
-        return;
+        console.log('Phone verification failed during submission:', error.response?.status);
+        
+        // Only block if it's a 400 error indicating phone is actually in use
+        if (error.response?.status === 400 && error.response?.data?.error === 'PHONE_IN_USE') {
+          alert('❌ This phone number is already registered with another account. Please use a different number.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // For 403 or other errors, log but continue with submission
+        console.log('Phone verification service unavailable, proceeding with submission');
       }
-      */
 
       // Submit application with proper field mapping
       const applicationData = {
@@ -369,6 +366,7 @@ const Registration = ({ onBack, onSuccess }) => {
         idType: formData.idType || 'national_id' // Default to national_id if not set
       };
 
+      console.log('Submitting application data:', applicationData);
       const response = await onboardingService.submitApplication(applicationData);
       
       onSuccess({
@@ -378,8 +376,10 @@ const Registration = ({ onBack, onSuccess }) => {
     } catch (error) {
       console.error('Application submission error:', error);
       
-      // Provide better error handling for network issues
-      if (!error.response) {
+      // Provide better error handling for different types of errors
+      if (error.response?.status === 403) {
+        alert('❌ Access denied. Please check your permissions or try again later.');
+      } else if (!error.response) {
         alert('❌ Unable to submit application. Please check your internet connection and try again.');
       } else if (error.response.status >= 500) {
         alert('❌ Server error occurred. Please try again later.');
@@ -464,7 +464,7 @@ const Registration = ({ onBack, onSuccess }) => {
                 )}
                 {phoneCheckStatus === 'available' && (
                   <p style={{ fontSize: '0.9rem', color: '#4caf50', marginTop: '5px' }}>
-                    ✅ Phone number accepted (verification temporarily disabled)
+                    ✅ Phone number is available
                   </p>
                 )}
                 {phoneCheckStatus === 'unavailable' && (
@@ -474,7 +474,7 @@ const Registration = ({ onBack, onSuccess }) => {
                 )}
                 {phoneCheckStatus === 'error' && (
                   <p style={{ fontSize: '0.9rem', color: '#ff9800', marginTop: '5px' }}>
-                    ⚠️ Unable to verify phone number - you can still proceed
+                    ⚠️ Phone verification unavailable - you can still proceed
                   </p>
                 )}
                 {validationErrors.phone && (
@@ -483,7 +483,7 @@ const Registration = ({ onBack, onSuccess }) => {
                   </p>
                 )}
                 <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
-                  📱 Phone verification temporarily disabled - duplicate check will be performed during final submission
+                  📱 Each phone number can only be used for one account
                 </p>
               </div>
               <div>
