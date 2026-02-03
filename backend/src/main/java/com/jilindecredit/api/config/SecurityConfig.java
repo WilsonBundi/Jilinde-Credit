@@ -60,8 +60,7 @@ public class SecurityConfig {
                 .requestMatchers("/", "/health").permitAll()
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers("/auth/login", "/auth/register").permitAll()
-                .requestMatchers("/api/onboarding/register", "/api/onboarding/check-phone").permitAll()
-                .requestMatchers("/onboarding/register", "/onboarding/check-phone").permitAll()
+                .requestMatchers("/api/onboarding/**", "/onboarding/**").permitAll() // Allow all onboarding endpoints
                 .requestMatchers("/api/customer/login", "/api/customer/check-phone", "/api/customer/send-verification", "/api/customer/verify-phone").permitAll()
                 .requestMatchers("/customer/login", "/customer/check-phone", "/customer/send-verification", "/customer/verify-phone").permitAll()
                 .requestMatchers("/api/mobile-kyc/**", "/mobile-kyc/**").permitAll() // Allow mobile KYC endpoints for public access
