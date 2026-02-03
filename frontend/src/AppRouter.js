@@ -932,6 +932,19 @@ const Registration = ({ onBack, onSuccess }) => {
           <p style={{ fontSize: '1.1rem', opacity: 0.9, margin: 0 }}>
             Complete all steps for secure loan application with admin approval
           </p>
+          {/* Demo Mode Indicator */}
+          <div style={{
+            marginTop: '15px',
+            padding: '8px 16px',
+            background: 'rgba(255, 193, 7, 0.9)',
+            color: '#000',
+            borderRadius: '20px',
+            fontSize: '0.9rem',
+            fontWeight: 'bold',
+            display: 'inline-block'
+          }}>
+            🚀 Demo Mode Active - Full functionality without backend
+          </div>
         </div>
 
         {/* Progress Steps */}

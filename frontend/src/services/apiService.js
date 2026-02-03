@@ -1,13 +1,39 @@
 import api from './authService';
+import { demoService } from './demoService';
 
-// Onboarding API
+// Check if backend is accessible
+let backendAccessible = true;
+
+// Onboarding API with demo fallback
 export const onboardingService = {
-  submitApplication: (applicationData) => {
-    return api.post('/onboarding/register', applicationData);
+  submitApplication: async (applicationData) => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for application submission');
+      return demoService.registerCustomer(applicationData);
+    }
+    
+    try {
+      return await api.post('/onboarding/register', applicationData);
+    } catch (error) {
+      console.error('Backend not accessible, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.registerCustomer(applicationData);
+    }
   },
   
-  checkPhone: (phone) => {
-    return api.post('/onboarding/check-phone', { phone });
+  checkPhone: async (phone) => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for phone check');
+      return demoService.checkPhone(phone);
+    }
+    
+    try {
+      return await api.post('/onboarding/check-phone', { phone });
+    } catch (error) {
+      console.error('Backend not accessible for phone check, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.checkPhone(phone);
+    }
   },
   
   getApplicationStatus: (applicationId) => {
@@ -131,22 +157,66 @@ export const paymentService = {
   },
 };
 
-// Dashboard API
+// Dashboard API with demo fallback
 export const dashboardService = {
-  getStats: () => {
-    return api.get('/dashboard/stats');
+  getStats: async () => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for dashboard stats');
+      return demoService.getDashboardStats();
+    }
+    
+    try {
+      return await api.get('/dashboard/stats');
+    } catch (error) {
+      console.error('Backend not accessible for stats, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.getDashboardStats();
+    }
   },
   
-  getAllApplications: () => {
-    return api.get('/admin/applications');
+  getAllApplications: async () => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for applications list');
+      return demoService.getAllApplications();
+    }
+    
+    try {
+      return await api.get('/admin/applications');
+    } catch (error) {
+      console.error('Backend not accessible for applications, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.getAllApplications();
+    }
   },
   
-  approveApplication: (applicationId) => {
-    return api.post(`/admin/applications/${applicationId}/approve`);
+  approveApplication: async (applicationId) => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for application approval');
+      return demoService.approveApplication(applicationId);
+    }
+    
+    try {
+      return await api.post(`/admin/applications/${applicationId}/approve`);
+    } catch (error) {
+      console.error('Backend not accessible for approval, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.approveApplication(applicationId);
+    }
   },
   
-  rejectApplication: (applicationId, reason) => {
-    return api.post(`/admin/applications/${applicationId}/reject`, { reason });
+  rejectApplication: async (applicationId, reason) => {
+    if (!backendAccessible) {
+      console.log('Using demo mode for application rejection');
+      return demoService.rejectApplication(applicationId, reason);
+    }
+    
+    try {
+      return await api.post(`/admin/applications/${applicationId}/reject`, { reason });
+    } catch (error) {
+      console.error('Backend not accessible for rejection, falling back to demo mode');
+      backendAccessible = false;
+      return demoService.rejectApplication(applicationId, reason);
+    }
   },
   
   getRecentActivity: () => {
