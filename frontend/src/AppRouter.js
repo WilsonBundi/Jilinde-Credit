@@ -238,6 +238,7 @@ const Registration = ({ onBack, onSuccess }) => {
   };
 
   // MOBILE KYC HANDLERS - COMMENTED OUT TEMPORARILY
+  // eslint-disable-next-line no-unused-vars
   const handleKycSuccess = (result) => {
     console.log('Mobile KYC Success:', result);
     setFormData(prev => ({ 
@@ -249,12 +250,14 @@ const Registration = ({ onBack, onSuccess }) => {
     alert('✅ Mobile KYC verification completed successfully!\n' + result.message);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleKycError = (error) => {
     console.error('Mobile KYC Error:', error);
     setShowMobileKyc(false);
     alert('❌ Mobile KYC Verification Failed:\n' + error);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleKycCancel = () => {
     setShowMobileKyc(false);
   };
