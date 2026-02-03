@@ -12,7 +12,7 @@ import { onboardingService } from './services/apiService';
 const Registration = ({ onBack, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showMobileKyc, setShowMobileKyc] = useState(false);
+  const [showMobileKyc, setShowMobileKyc] = useState(false); // Mobile KYC state - temporarily unused
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -238,26 +238,26 @@ const Registration = ({ onBack, onSuccess }) => {
   };
 
   // MOBILE KYC HANDLERS - COMMENTED OUT TEMPORARILY
-  // const handleKycSuccess = (result) => {
-  //   console.log('Mobile KYC Success:', result);
-  //   setFormData(prev => ({ 
-  //     ...prev, 
-  //     kycCompleted: true, 
-  //     customerId: result.sessionId || 'KYC_' + Date.now() 
-  //   }));
-  //   setShowMobileKyc(false);
-  //   alert('✅ Mobile KYC verification completed successfully!\n' + result.message);
-  // };
+  const handleKycSuccess = (result) => {
+    console.log('Mobile KYC Success:', result);
+    setFormData(prev => ({ 
+      ...prev, 
+      kycCompleted: true, 
+      customerId: result.sessionId || 'KYC_' + Date.now() 
+    }));
+    setShowMobileKyc(false);
+    alert('✅ Mobile KYC verification completed successfully!\n' + result.message);
+  };
 
-  // const handleKycError = (error) => {
-  //   console.error('Mobile KYC Error:', error);
-  //   setShowMobileKyc(false);
-  //   alert('❌ Mobile KYC Verification Failed:\n' + error);
-  // };
+  const handleKycError = (error) => {
+    console.error('Mobile KYC Error:', error);
+    setShowMobileKyc(false);
+    alert('❌ Mobile KYC Verification Failed:\n' + error);
+  };
 
-  // const handleKycCancel = () => {
-  //   setShowMobileKyc(false);
-  // };
+  const handleKycCancel = () => {
+    setShowMobileKyc(false);
+  };
 
   const handleSubmit = async () => {
     if (!validateStep(5)) { // Changed from 6 to 5
@@ -778,6 +778,25 @@ const Registration = ({ onBack, onSuccess }) => {
                   </span>
                 </label>
               </div>
+              
+              {/* Mobile KYC Test Button - for development purposes */}
+              <div style={{ marginBottom: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileKyc(true)}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#2196f3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔒 Test Mobile KYC (Development)
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -976,7 +995,7 @@ const Registration = ({ onBack, onSuccess }) => {
       </div>
 
       {/* MOBILE KYC QR CODE MODAL - COMMENTED OUT TEMPORARILY */}
-      {/* {showMobileKyc && (
+      {showMobileKyc && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -996,15 +1015,16 @@ const Registration = ({ onBack, onSuccess }) => {
             maxWidth: '100vw',
             maxHeight: '100vh'
           }}>
-            <MobileKycQrCode
-              customerData={formData}
-              onSuccess={handleKycSuccess}
-              onError={handleKycError}
-              onCancel={handleKycCancel}
-            />
+            {/* MobileKycQrCode component temporarily disabled */}
+            <div style={{ color: 'white', textAlign: 'center', padding: '50px' }}>
+              <h2>Mobile KYC Temporarily Disabled</h2>
+              <button onClick={handleKycCancel} style={{ padding: '10px 20px', marginTop: '20px' }}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
-      )} */}
+      )}
     </div>
   );
 };
