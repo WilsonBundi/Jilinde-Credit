@@ -1,10 +1,6 @@
 import axios from 'axios';
-import { demoService } from './demoService';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-
-// Track backend accessibility
-let backendAccessible = true;
 
 // Create axios instance
 const api = axios.create({
@@ -43,19 +39,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  login: async (credentials) => {
-    if (!backendAccessible) {
-      console.log('Using demo mode for login');
-      return demoService.login(credentials);
-    }
-    
-    try {
-      return await api.post('/auth/login', credentials);
-    } catch (error) {
-      console.error('Backend not accessible for login, falling back to demo mode');
-      backendAccessible = false;
-      return demoService.login(credentials);
-    }
+  login: (credentials) => {
+    return api.post('/auth/login', credentials);
   },
 
   logout: () => {

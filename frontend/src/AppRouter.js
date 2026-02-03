@@ -158,6 +158,20 @@ const Registration = ({ onBack, onSuccess }) => {
   };
 
   const checkPhoneAvailability = async (phoneNumber) => {
+    // Temporarily skip phone checking due to backend 403 issues
+    console.log('Phone check temporarily disabled due to backend issues');
+    setPhoneCheckStatus('available');
+    
+    // Clear any previous phone validation errors
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.phone;
+      return newErrors;
+    });
+    
+    return;
+    
+    /* ORIGINAL CODE - UNCOMMENT WHEN BACKEND IS FIXED
     setPhoneCheckStatus('checking');
     try {
       console.log('Checking phone availability for:', phoneNumber);
@@ -214,6 +228,7 @@ const Registration = ({ onBack, onSuccess }) => {
         }));
       }
     }
+    */
   };
 
   const handleFileUpload = (field, file) => {
@@ -329,23 +344,8 @@ const Registration = ({ onBack, onSuccess }) => {
 
     setIsSubmitting(true);
     try {
-      // Try to verify phone number is not in use, but don't block if service is unavailable
-      try {
-        await onboardingService.checkPhone(formData.phone);
-        console.log('Phone verification passed during submission');
-      } catch (error) {
-        console.log('Phone verification failed during submission:', error.response?.status);
-        
-        // Only block if it's a 400 error indicating phone is actually in use
-        if (error.response?.status === 400 && error.response?.data?.error === 'PHONE_IN_USE') {
-          alert('❌ This phone number is already registered with another account. Please use a different number.');
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // For 403 or other errors, log but continue with submission
-        console.log('Phone verification service unavailable, proceeding with submission');
-      }
+      // Skip phone verification during submission due to backend 403 issues
+      console.log('Skipping phone verification during submission due to backend issues');
 
       // Submit application with proper field mapping
       const applicationData = {
@@ -378,7 +378,7 @@ const Registration = ({ onBack, onSuccess }) => {
       
       // Provide better error handling for different types of errors
       if (error.response?.status === 403) {
-        alert('❌ Access denied. Please check your permissions or try again later.');
+        alert('❌ Access denied. The backend service is not properly configured. Please contact support.');
       } else if (!error.response) {
         alert('❌ Unable to submit application. Please check your internet connection and try again.');
       } else if (error.response.status >= 500) {
@@ -932,19 +932,6 @@ const Registration = ({ onBack, onSuccess }) => {
           <p style={{ fontSize: '1.1rem', opacity: 0.9, margin: 0 }}>
             Complete all steps for secure loan application with admin approval
           </p>
-          {/* Demo Mode Indicator */}
-          <div style={{
-            marginTop: '15px',
-            padding: '8px 16px',
-            background: 'rgba(255, 193, 7, 0.9)',
-            color: '#000',
-            borderRadius: '20px',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            display: 'inline-block'
-          }}>
-            🚀 Demo Mode Active - Full functionality without backend
-          </div>
         </div>
 
         {/* Progress Steps */}

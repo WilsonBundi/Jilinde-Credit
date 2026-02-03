@@ -5,6 +5,7 @@ import com.jilindecredit.api.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -57,10 +58,15 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/", "/health").permitAll()
+                // Allow OPTIONS requests for CORS preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Public endpoints
+                .requestMatchers("/", "/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                 .requestMatchers("/auth/login", "/auth/register").permitAll()
-                .requestMatchers("/api/onboarding/**", "/onboarding/**").permitAll() // Allow all onboarding endpoints
+                .requestMatchers(HttpMethod.POST, "/api/onboarding/**").permitAll() // Explicitly allow POST to onboarding
+                .requestMatchers(HttpMethod.GET, "/api/onboarding/**").permitAll() // Explicitly allow GET to onboarding
+                .requestMatchers("/onboarding/**").permitAll()
                 .requestMatchers("/api/customer/login", "/api/customer/check-phone", "/api/customer/send-verification", "/api/customer/verify-phone").permitAll()
                 .requestMatchers("/customer/login", "/customer/check-phone", "/customer/send-verification", "/customer/verify-phone").permitAll()
                 .requestMatchers("/api/mobile-kyc/**", "/mobile-kyc/**").permitAll() // Allow mobile KYC endpoints for public access
